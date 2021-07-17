@@ -8,6 +8,8 @@ use BeHappy\SyliusRightsManagementPlugin\Entity\Right;
 use BeHappy\SyliusRightsManagementPlugin\Entity\RightInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -15,8 +17,10 @@ use Symfony\Component\Routing\RouterInterface;
  *
  * @package BeHappy\SyliusRightsManagementPlugin\Service
  */
-class GroupService implements GroupServiceInterface
+class GroupService implements GroupServiceInterface, ContainerAwareInterface
 {
+    use ContainerAwareTrait;
+
     /** @var array|null */
     protected $arrayRouter;
     /** @var array */
@@ -25,7 +29,7 @@ class GroupService implements GroupServiceInterface
     protected $router;
     /** @var RepositoryInterface */
     protected $rightRepository;
-    
+
     /**
      * GroupService constructor.
      *
@@ -112,7 +116,7 @@ class GroupService implements GroupServiceInterface
      *
      * @return bool
      */
-    public function isUserGranted(string $route, AdminUserInterface $user): bool
+    public function isUserGranted(string $route, AdminUserInterface $user,  $requestConfigs = null): bool
     {
         if (preg_match ("/sylius_admin_get_/", $route)) {
             return true;
@@ -131,8 +135,52 @@ class GroupService implements GroupServiceInterface
         if (!$right instanceof Right){
             return false;
         }
-        
-        return $right->isGranted();
+
+        $isGranted = $right->isGranted();
+        if($requestConfigs != null && $isGranted){
+            $isResourceGranted = $this->isResourceGranted($user, $requestConfigs);
+            if($isResourceGranted === true) {
+                return true;
+            } else if($isResourceGranted === false) {
+                return false;
+            }
+        }
+
+        return $isGranted;
+    }
+
+    public function isResourceGranted($user, $requestConfigs)
+    {
+        $resourceId = $this->getResourceVendorId($requestConfigs);
+        if($resourceId === false) {
+            return true;
+        }
+
+        if(!empty($user->getVendor()) && $user->getVendor()->getId() != $resourceId) {
+            return false;
+        }
+
+        return null;
+    }
+
+    public function getResourceVendorId($config)
+    {
+        if(empty($config) || strpos($config->get('_controller'), ":indexAction")) {
+            return false;
+        }
+        $serviceName = str_replace(['sylius.controller.', ':showAction', ':updateAction', ':deleteAction'], '', $config->get('_controller'));
+        $repoName = 'sylius.repository.'. $serviceName;
+
+        if(!$this->container->has($repoName) || empty($config->get('id'))) {
+            return false;
+        }
+
+        $resource = $this->container->get($repoName)->find($config->get('id'));
+        if(empty($resource) || !method_exists($resource, 'getVendor')) {
+            return false;
+        }
+
+        return $resource->getVendor()->getId();
     }
 
     /**
