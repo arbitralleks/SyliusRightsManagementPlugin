@@ -176,7 +176,7 @@ class GroupService implements GroupServiceInterface, ContainerAwareInterface
         }
 
         $resource = $this->container->get($repoName)->find($config->get('id'));
-        if(empty($resource) || !method_exists($resource, 'getVendor')) {
+        if(empty($resource) || !method_exists($resource, 'getVendor') || empty($resource->getVendor())) {
             return false;
         }
 
