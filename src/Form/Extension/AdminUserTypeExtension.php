@@ -33,10 +33,10 @@ class AdminUserTypeExtension extends AbstractTypeExtension
     /**
      * Returns the name of the type being extended.
      *
-     * @return string The name of the type being extended
+     * @return iterable
      */
-    public function getExtendedType(): string
+    public static function getExtendedTypes(): iterable
     {
-        return AdminUserType::class;
+        return [AdminUserType::class];
     }
 }

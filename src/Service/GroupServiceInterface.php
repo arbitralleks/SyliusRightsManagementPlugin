@@ -23,15 +23,15 @@ interface GroupServiceInterface
      * @throws \Exception
      */
     public function createMissingRights(GroupInterface &$group): void;
-    
+
     /**
      * @param string             $route
      * @param AdminUserInterface $user
      *
      * @return bool
      */
-    public function isUserGranted(string $route, AdminUserInterface $user): bool;
-    
+    public function isUserGranted(string $route, AdminUserInterface $user,  $requestConfigs = null): bool;
+
     /**
      * @param string             $route
      * @param AdminUserInterface $user
@@ -39,14 +39,14 @@ interface GroupServiceInterface
      * @return RightInterface|null
      */
     public function getRight(string $route, AdminUserInterface $user): ?RightInterface;
-    
+
     /**
      * @param RightInterface $right
      *
      * @return string
      */
     public function getRedirectRoute(?RightInterface $right): string;
-    
+
     /**
      * @param RightInterface $right
      *

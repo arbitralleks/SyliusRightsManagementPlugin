@@ -10,7 +10,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -118,7 +117,7 @@ class GroupService implements GroupServiceInterface, ContainerAwareInterface
      * @param null $requestConfigs
      * @return bool
      */
-    public function isUserGranted(string $route, AdminUserInterface $user, $requestConfigs = null): bool
+    public function isUserGranted(string $route, AdminUserInterface $user,  $requestConfigs = null): bool
     {
         # is security exists grant or deny
         if (preg_match ("/sylius_admin_get_/", $route)) {
@@ -154,16 +153,36 @@ class GroupService implements GroupServiceInterface, ContainerAwareInterface
 
     public function isResourceGranted($user, $requestConfigs)
     {
-        $resourceId = $this->getResourceShopId($requestConfigs);
+        $resourceId = $this->getResourceVendorId($requestConfigs);
         if($resourceId === false) {
             return true;
         }
 
-        if(!empty($user->getShop()) && $user->getShop()->getId() != $resourceId) {
+        if(!empty($user->getVendor()) && $user->getVendor()->getId() != $resourceId) {
             return false;
         }
 
         return null;
+    }
+
+    public function getResourceVendorId($config)
+    {
+        if(empty($config) || strpos($config->get('_controller'), ":indexAction")) {
+            return false;
+        }
+        $serviceName = str_replace(['sylius.controller.', ':showAction', ':updateAction', ':deleteAction'], '', $config->get('_controller'));
+        $repoName = 'sylius.repository.'. $serviceName;
+
+        if(!$this->container->has($repoName) || empty($config->get('id'))) {
+            return false;
+        }
+
+        $resource = $this->container->get($repoName)->find($config->get('id'));
+        if(empty($resource) || !method_exists($resource, 'getVendor') || empty($resource->getVendor())) {
+            return false;
+        }
+
+        return $resource->getVendor()->getId();
     }
 
     /**

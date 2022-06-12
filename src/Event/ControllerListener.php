@@ -10,12 +10,12 @@ use BeHappy\SyliusRightsManagementPlugin\Entity\AdminUserInterface;
 use BeHappy\SyliusRightsManagementPlugin\Entity\Group;
 use BeHappy\SyliusRightsManagementPlugin\Service\GroupServiceInterface;
 use Sylius\Bundle\ResourceBundle\Controller\ResourceController;
-use Sylius\Bundle\UiBundle\Controller\SecurityController;
 use Sylius\Component\User\Model\UserInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Event\FilterControllerEvent;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -58,7 +58,7 @@ class ControllerListener
     /**
      * @param FilterControllerEvent $event
      */
-    public function onKernelController(FilterControllerEvent $event)
+    public function onKernelController(ControllerEvent $event): void
     {
         $request = $event->getRequest();
         $route = $request->attributes->get('_route');
@@ -67,14 +67,7 @@ class ControllerListener
 
         if (is_array($controller) && $controller[0] instanceof ResourceController && !empty($route) && !empty(strpos($route, 'admin'))) {
             $user = $this->getUser();
-            if ($user instanceof AdminUserInterface && empty($user->getGroup()) ) {
-                # TODO redirect to 404 on null group
-                $this->redirectUser('/404', "Unauthorized", $event);
-            } else if ($user instanceof AdminUserInterface &&
-                $user->getGroup() instanceof Group &&
-                $user->getGroup()->getCode() !== AdminUser::SUPER_ADMIN_GROUP &&
-                $route != "app_admin_user_register"
-            ) {
+            if ($user instanceof AdminUserInterface && !empty($user->getGroup()) && $user->getGroup() instanceof Group) {
                 if (!$service->isUserGranted($route, $user, $request->attributes)) {
                     $right = $service->getRight($route, $user);
                     $redirectRoute = $service->getRedirectRoute($right);
