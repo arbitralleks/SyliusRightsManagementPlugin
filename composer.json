@@ -1,5 +1,5 @@
 {
-    "name": "botme/rights-management-plugin",
+    "name": "3attar/rights-management-plugin",
     "type": "sylius-plugin",
     "description": "A rights management plugin for Sylius.",
     "license": "MIT",
