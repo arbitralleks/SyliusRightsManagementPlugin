@@ -111,13 +111,15 @@ class GroupService implements GroupServiceInterface, ContainerAwareInterface
     }
 
     /**
-     * @param string             $route
+     * @param string $route
      * @param AdminUserInterface $user
      *
+     * @param null $requestConfigs
      * @return bool
      */
     public function isUserGranted(string $route, AdminUserInterface $user,  $requestConfigs = null): bool
     {
+        # is security exists grant or deny
         if (preg_match ("/sylius_admin_get_/", $route)) {
             return true;
         }
@@ -276,4 +278,23 @@ class GroupService implements GroupServiceInterface, ContainerAwareInterface
         return $redirectMessage;
     }
 
+    public function getResourceShopId($config)
+    {
+        if(empty($config) || strpos($config->get('_controller'), ":indexAction")) {
+            return false;
+        }
+        $serviceName = str_replace(['sylius.controller.', ':showAction', ':updateAction', ':deleteAction'], '', $config->get('_controller'));
+        $repoName = 'sylius.repository.'. $serviceName;
+
+        if(!$this->container->has($repoName) || empty($config->get('id'))) {
+           return false;
+        }
+
+        $resource = $this->container->get($repoName)->find($config->get('id'));
+        if(empty($resource) || !method_exists($resource, 'getShop')) {
+            return false;
+        }
+
+        return $resource->getShop()->getId();
+    }
 }
